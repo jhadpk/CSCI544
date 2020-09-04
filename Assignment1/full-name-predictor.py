@@ -8,11 +8,16 @@ last_names_set = set()
 
 titles_set = set()
 
-predefined_titles = ["lieutenant", "captain", "major", "colonel", "brigadier", "general", "professor", "reverend", "doctor"]
+predefined_titles = ["lieutenant", "captain", "major", "colonel", "brigadier", "general", "professor", "reverend",
+                     "doctor"]
 nothing = ""
 space = " "
 
 
+"""
+Populates male, female and last_name dictionaries with name as key and frequency per 100k as value.
+For name files, frequency = frequency * 1000 (as name file has %, whereas surname file as prop100k, hence 100000/100)
+"""
 def create_metadata(_file, _is_surname, _freq_index, global_dict, global_set):
     file = open(_file, "r")
     for line in file:
@@ -29,23 +34,37 @@ def create_metadata(_file, _is_surname, _freq_index, global_dict, global_set):
     file.close()
 
 
-def predict_name(_test_file, _output_file):
-    input_file = open(_test_file, "r")
+"""
+Reads input_file of names and outputs the predicted name in output_file
+"""
+def predict_name(_input_file, _output_file):
+    input_file = open(_input_file, "r")
     output_file = open(_output_file, "w")
 
     for line in input_file:
         people = line.split(" AND ")
         first_name = people[0].strip()
         second_name = people[1].strip()
-        if is_last_name_needed(first_name, second_name):
-            first_name += space + predict_last_name(first_name, second_name)
+        if is_surname_needed(first_name, second_name):
+            first_name += space + predict_last_name(first_name, second_name).strip()
         output = line.strip() + "," + first_name.strip() + "\n"
         output_file.write(output)
     input_file.close()
     output_file.close()
 
 
-def is_last_name_needed(first_name, second_name):
+"""
+Checks if the given first name requires surname
+@:param first_name 
+@:param second_name
+1. length of first name (barring title) should be < 3.
+2. length of first name (barring title) should be <= length of second name.
+3. last word in first name should not be a surname (missing in names_set).
+4. best surname of first name should not have the last index - this means it already has a surname
+
+@:return boolean true if first_name needs a surname
+"""
+def is_surname_needed(first_name, second_name):
     first_names = first_name.split()
     second_names = second_name.split()
 
@@ -73,6 +92,13 @@ def is_last_name_needed(first_name, second_name):
     return True
 
 
+"""
+Checks if title present in the given name
+@:param person_name
+1. if the first word in the name is missing from names_set or present in predefined titles list.
+
+@:return boolean true if title is present in name
+"""
 def is_title_present(person_name):
     names = person_name.split()
     title_present = False
@@ -91,6 +117,9 @@ def is_title_present(person_name):
     return title_present
 
 
+"""
+Returns true if the given name has higher frequency in male_names_dict compared to female_names_dict
+"""
 def is_male(person_name):
     title_present = is_title_present(person_name)
     first_name = person_name.split()[1 if title_present else 0]
@@ -99,6 +128,17 @@ def is_male(person_name):
     return True if male_name_frequency > female_name_frequency else False
 
 
+"""
+Returns the name with highest surname frequency in the given name
+@:param person_name
+
+1. traverses through all the names in person_name to figure out the name with best surname frequency.
+2. a name is considered - a firstname only if its name frequency is > 20 and surname if its surname frequency is > 5.
+3. if a name is missing from names_set (definite surname), even then we call it a name, if the difference between 
+name and surname frequency is < 30.
+
+@:return the best surname across the person_name
+"""
 def get_best_existing_surname(person_name):
     title_present = is_title_present(person_name)
 
@@ -126,7 +166,7 @@ def get_best_existing_surname(person_name):
                 best_surname = name
         else:
             # consider a name as surname only if its name_frequency < 20 and its surname_freq is higher than name
-            if surname_frequency != 0 and surname_frequency > name_frequency + 30:
+            if surname_frequency > name_frequency + 30:
                 last_name_found = True
                 if surname_frequency > best_surname_frequency:
                     best_surname_frequency = surname_frequency
@@ -135,6 +175,21 @@ def get_best_existing_surname(person_name):
     return best_surname if last_name_found else nothing
 
 
+"""
+Returns the predicted surname in the given first_name using the second_name
+@:param first_name
+@:param second_name
+
+1. traverses through all the names in second_name to figure out the name with best surname frequency.
+2. a name is considered a surname if its missing from names set or if its surname frequency > name frequency + 20.
+3. break at any point where name doesnt belong to names_set
+4. if no surname is found in second_name, then return the last word in second_name if :
+    a) first_name is of length = 1.
+    b) first_name doesnt have any surname and surname_frequency of second_name's last word + 20 > surname_frequency 
+       of first_name's last word
+
+@:return the surname from point where loop broke
+"""
 def predict_last_name(first_name, second_name):
     title_present = is_title_present(second_name)
     start = 1 if title_present else 0
@@ -179,7 +234,8 @@ def predict_last_name(first_name, second_name):
             # check if last word frequency in second person's name is greater than first person's name, then return that
             first_names = first_name.split()
             first_names_len = len(first_names)
-            last_name_freq = last_name_dict[first_names[first_names_len-1]] if first_names[first_names_len-1] in last_name_dict.keys() else 0
+            last_name_freq = last_name_dict[first_names[first_names_len - 1]] if first_names[
+                                                                                     first_names_len - 1] in last_name_dict.keys() else 0
             # even if second person's last name freq + 20 is greater than first person's last name freq, return
             if surname_frequency > 0 and surname_frequency + 20 > last_name_freq:
                 return name
@@ -221,7 +277,7 @@ female_names = "dist.female.first.txt"
 last_names = "Names_2010Census.csv"
 
 create_metadata(male_names, False, 1, male_names_dict, names_set)
-create_metadata(female_names, False, 1,  female_names_dict, names_set)
+create_metadata(female_names, False, 1, female_names_dict, names_set)
 create_metadata(last_names, True, 3, last_name_dict, last_names_set)
 
 predict_name(test_file, output_file)
