@@ -10,6 +10,7 @@ titles_set = set()
 
 predefined_titles = ["lieutenant", "captain", "major", "colonel", "brigadier", "general", "professor", "reverend", "doctor"]
 nothing = ""
+space = " "
 
 
 def create_metadata(_file, _is_surname, _freq_index, global_dict, global_set):
@@ -34,24 +35,24 @@ def predict_name(_test_file, _output_file):
 
     for line in input_file:
         people = line.split(" AND ")
-        first_person_name = people[0].strip()
-        second_person_name = people[1].strip()
-        if is_last_name_needed(first_person_name, second_person_name):
-            first_person_name += " " + predict_last_name(first_person_name, second_person_name)
-        output = line.strip() + "," + first_person_name.strip() + "\n"
+        first_name = people[0].strip()
+        second_name = people[1].strip()
+        if is_last_name_needed(first_name, second_name):
+            first_name += space + predict_last_name(first_name, second_name)
+        output = line.strip() + "," + first_name.strip() + "\n"
         output_file.write(output)
     input_file.close()
     output_file.close()
 
 
-def is_last_name_needed(first_person_name, second_person_name):
-    first_names = first_person_name.split()
-    second_names = second_person_name.split()
+def is_last_name_needed(first_name, second_name):
+    first_names = first_name.split()
+    second_names = second_name.split()
 
     first_name_len = len(first_names)
     second_name_len = len(second_names)
 
-    title_present = is_title_present(first_person_name)
+    title_present = is_title_present(first_name)
 
     # the length of first person's name should be <3 and <= second person's name length
     if title_present:
@@ -61,29 +62,14 @@ def is_last_name_needed(first_person_name, second_person_name):
         if first_name_len >= 3 or first_name_len > second_name_len:
             return False
 
-    if first_names[first_name_len - 1] not in names_set:
+    if first_names[first_name_len - 1] not in names_set and first_name_len - 1 != 0:
         # already has a last name
         return False
 
-
-    # if surname present in first person's name has greater surname frequency than name frequency, then return false
-    first_surname = get_best_existing_surname(first_person_name)
-    # last_name = first_names[first_name_len - 1]
-    dict_to_look = male_names_dict if is_male(first_person_name) else female_names_dict
-
-
-    # if first_surname == nothing:
-    #     temp_surname_freq = last_name_dict[last_name] if last_name in last_name_dict.keys() else 0
-    #     temp_last_name_freq = dict_to_look[last_name] if last_name in dict_to_look.keys() else 0
-    #     if temp_surname_freq > temp_last_name_freq:
-    #         first_surname = last_name
-
-    surname_freq = last_name_dict[first_surname] if first_surname in last_name_dict.keys() else 0
-    name_freq = dict_to_look[first_surname] if first_surname in dict_to_look.keys() else 0
+    # if surname present in first person's name then return false
+    first_surname = get_best_existing_surname(first_name)
     if first_surname != nothing and first_names.index(first_surname) == first_name_len - 1:
-        if surname_freq > name_freq:
-            return False
-
+        return False
     return True
 
 
@@ -98,7 +84,7 @@ def is_title_present(person_name):
             break
         else:
             title_present = True
-            title += name + " "
+            title += name + space
     if title_present:
         titles_set.add(title.strip())
         print("New Title found : " + title)
@@ -107,12 +93,9 @@ def is_title_present(person_name):
 
 def is_male(person_name):
     title_present = is_title_present(person_name)
-
     first_name = person_name.split()[1 if title_present else 0]
-
     male_name_frequency = male_names_dict[first_name] if first_name in male_names_dict.keys() else 0
     female_name_frequency = female_names_dict[first_name] if first_name in female_names_dict.keys() else 0
-
     return True if male_name_frequency > female_name_frequency else False
 
 
@@ -121,7 +104,6 @@ def get_best_existing_surname(person_name):
 
     start = 1 if title_present else 0
     names = person_name.split()
-
     name_len = len(names)
 
     if name_len == 1:
@@ -129,125 +111,81 @@ def get_best_existing_surname(person_name):
 
     dict_to_look = male_names_dict if is_male(person_name) else female_names_dict
 
-    highest_surname_frequency = 0
+    best_surname_frequency = 0
     best_surname = ""
-    last_name_not_found = True
+    last_name_found = False
     for x in range(start, name_len):
         name = names[x]
         name_frequency = dict_to_look[name] if name in dict_to_look.keys() and dict_to_look[name] > 20 else 0
         surname_frequency = last_name_dict[name] if name in last_name_dict.keys() and last_name_dict[name] > 5 else 0
 
         if name not in dict_to_look.keys():
-            if x == start:
-                # cant have full second name as surname
-                continue
-            last_name_not_found = False
-            # break
-            if surname_frequency > highest_surname_frequency:
-                highest_surname_frequency = surname_frequency
+            last_name_found = True
+            if surname_frequency > best_surname_frequency:
+                best_surname_frequency = surname_frequency
                 best_surname = name
         else:
             # consider a name as surname only if its name_frequency < 20 and its surname_freq is higher than name
-            if name_frequency < 20 and surname_frequency > name_frequency:
-                if x == start:
-                    # cant have full second name as surname
-                    continue
-                last_name_not_found = False
-                # break
-                if surname_frequency > highest_surname_frequency:
-                    highest_surname_frequency = surname_frequency
+            if surname_frequency != 0 and surname_frequency > name_frequency + 30:
+                last_name_found = True
+                if surname_frequency > best_surname_frequency:
+                    best_surname_frequency = surname_frequency
                     best_surname = name
             continue
-
-    if last_name_not_found and x == name_len - 1:
-        return nothing
-    else:
-        return best_surname
-        # return name
+    return best_surname if last_name_found else nothing
 
 
-def predict_last_name(first_person_name, second_person_name):
-    first_person_surname = get_best_existing_surname(first_person_name)
-    first_person_surname_frequency = last_name_dict[first_person_surname] if first_person_surname in last_name_dict.keys() and last_name_dict[first_person_surname] > 15 else 0
-
-    title_present = is_title_present(second_person_name)
+def predict_last_name(first_name, second_name):
+    title_present = is_title_present(second_name)
     start = 1 if title_present else 0
-    names = second_person_name.split()
-
+    names = second_name.split()
     name_len = len(names)
 
-    dict_to_look = male_names_dict if is_male(second_person_name) else female_names_dict
+    dict_to_look = male_names_dict if is_male(second_name) else female_names_dict
 
-    last_name_not_found = True
+    last_name_found = False
+
     # find the first word in second name which is not in names_set and then return from that index as surname
-
-    best_surname_index = -1
-    highest_surname_frequency = 0
-
     for x in range(start, name_len):
         name = names[x]
-        name_frequency = dict_to_look[name] if name in dict_to_look.keys() and dict_to_look[name] > 20 else 0
-        surname_frequency = last_name_dict[name] if name in last_name_dict.keys() and last_name_dict[name] > 5 else 0
+        name_frequency = dict_to_look[name] if name in dict_to_look.keys() else 0
+        surname_frequency = last_name_dict[name] if name in last_name_dict.keys() else 0
 
         if name not in dict_to_look.keys():
             if x == start:
-                # cant have full second name as surname
+                # cant have full name as surname
                 continue
-            last_name_not_found = False
+            last_name_found = True
             break
-            # if surname_frequency > highest_surname_frequency:
-            #     highest_surname_frequency = surname_frequency
-            #     best_surname_index = x
         else:
-            if surname_frequency > name_frequency:
+            if surname_frequency != 0 and surname_frequency > name_frequency + 20:
                 if x == start:
-                    # cant have full second name as surname
+                    # cant have full name as surname
                     continue
-                last_name_not_found = False
+                last_name_found = True
                 break
-                # if surname_frequency > highest_surname_frequency:
-                #     highest_surname_frequency = surname_frequency
-                #     best_surname_index = x
             continue
 
     # no surname found in second person name
-    if last_name_not_found:
+    if not last_name_found:
         # if first person just has single name, return last name of second person
-        if len(first_person_name.split()) == 1:
+        if len(first_name.split()) == 1:
             return name
 
         # if first person doesnt have surname, return last name of second person if its freq > first persons last name freq
-        if first_person_surname == nothing:
+        first_surname = get_best_existing_surname(first_name)
+        if first_surname == nothing:
             # first person also did not have a surname
             # check if last word frequency in second person's name is greater than first person's name, then return that
-            first_person_names = first_person_name.split()
-            first_person_names_len = len(first_person_names)
-            last_name_freq = last_name_dict[first_person_names[first_person_names_len-1]] if first_person_names[first_person_names_len-1] in last_name_dict.keys() else 0
-            if surname_frequency > last_name_freq:
+            first_names = first_name.split()
+            first_names_len = len(first_names)
+            last_name_freq = last_name_dict[first_names[first_names_len-1]] if first_names[first_names_len-1] in last_name_dict.keys() else 0
+            # even if second person's last name freq + 20 is greater than first person's last name freq, return
+            if surname_frequency > 0 and surname_frequency + 20 > last_name_freq:
                 return name
         return nothing
 
-
-    # predicted_surname_frequency = last_name_dict[name] if name in last_name_dict.keys() else 0
-    # if not valid_surname(first_person_names[first_person_names_len-1], name):
-    #     return nothing
-
-    # if first_person_surname_frequency > predicted_surname_frequency:
-    #     #CASES:
-    #     #DOCTOR DENNIS RONALD BARRY AND MARILYN SHARON EDMONDS,DOCTOR DENNIS RONALD BARRY
-    #     #CHARLES DENNIS LOGAN AND PROFESSOR MARIAN MICHELLE TILLER,CHARLES DENNIS LOGAN
-    #     return nothing
-
-    predicted_last_name = ""
-    for i in range(x, name_len):
-        predicted_last_name += names[i] + " "
-    return predicted_last_name.strip()
-
-
-# def valid_surname(first, predicted):
-#     first_surname_frequency = last_name_dict[first] if first in last_name_dict.keys() else 0
-#     predicted_surname_frequency = last_name_dict[predicted] if predicted in last_name_dict.keys() else 0
-#     return predicted_surname_frequency > first_surname_frequency
+    return space.join(names[x:])
 
 
 def print_accuracy(output_file, key_file):
@@ -264,7 +202,7 @@ def print_accuracy(output_file, key_file):
                 correct += 1
             else:
                 incorrect += 1
-                print(output_text[0] + " Excepted : " + key_name + ", Found : " + output_name)
+                print(output_text[0] + ", Expected : " + key_name + ", Found : " + output_name)
 
     accuracy = correct * 100 / (correct + incorrect)
     print("Correct : " + str(correct))
