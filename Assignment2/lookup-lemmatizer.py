@@ -15,6 +15,58 @@ def get_lemma_with_maximum_count(lemma_count_dict):
 def create_lookup_table(form, lemma_count):
     lemma_max[form] = get_lemma_with_maximum_count(lemma_count[form])
 
+
+def train_lemma_count(form, lemma):
+    if form not in lemma_count:
+        lemma_count[form] = {}
+
+    if lemma not in lemma_count[form]:
+        lemma_count[form][lemma] = 0
+
+    lemma_count[form][lemma] = lemma_count[form][lemma] + 1
+
+
+def train_lookup():
+    global wordform_types, wordform_tokens, identity_tokens, ambiguous_types, ambiguous_tokens, \
+        ambiguous_most_common_tokens, unambiguous_types, unambiguous_tokens
+
+    for form in lemma_count.keys():
+
+        create_lookup_table(form, lemma_count)
+
+        form_lemma_count = lemma_count[form]
+        ambiguous_types_incremented = False
+        for lemma in form_lemma_count:
+            wordform_tokens += form_lemma_count[lemma]
+            if lemma == form:
+                identity_tokens += form_lemma_count[lemma]
+            if len(form_lemma_count) > 1:
+                if not ambiguous_types_incremented:
+                    ambiguous_types += 1
+                    ambiguous_types_incremented = True
+                ambiguous_tokens += form_lemma_count[lemma]
+                if lemma == lemma_max[form]:
+                    ambiguous_most_common_tokens += form_lemma_count[lemma]
+            else:
+                unambiguous_types += 1
+                unambiguous_tokens += form_lemma_count[lemma]
+        wordform_types += 1
+
+
+def test_lookup(form, lemma):
+    global found_in_lookup_table, lookup_match, lookup_mismatch, not_found_in_lookup_table, identity_match, \
+        identity_mismatch, total_test_items
+    if form in lemma_max:
+        found_in_lookup_table += 1
+        lookup_match, lookup_mismatch = (lookup_match + 1, lookup_mismatch) if lemma == lemma_max[form] else (
+            lookup_match, lookup_mismatch + 1)
+    else:
+        not_found_in_lookup_table += 1
+        identity_match, identity_mismatch = (identity_match + 1, identity_mismatch) if lemma == form else (
+            identity_match, identity_mismatch + 1)
+    total_test_items += 1
+
+
 def set_training_results():
     training_counts['Wordform types'] = wordform_types
     training_counts['Wordform tokens'] = wordform_tokens
@@ -63,7 +115,6 @@ test_file = sys.argv[2]
 # train_file = "UD_Hindi-HDTB-master/hi_hdtb-ud-train.conllu"
 # test_file = "UD_Hindi-HDTB-master/hi_hdtb-ud-test.conllu"
 
-
 lemma_count = {}
 lemma_max = {}
 
@@ -82,67 +133,25 @@ total_test_items = found_in_lookup_table = lookup_match = lookup_mismatch = not_
 accuracies = {}
 
 train_data = open(train_file, 'r')
+test_data = open(test_file, 'r')
 
 for line in train_data:
     if re.search('\t', line):
         field = line.strip().split('\t')
         form = field[1]
         lemma = field[2]
+        train_lemma_count(form, lemma)
 
-        if form not in lemma_count:
-            lemma_count[form] = {}
-        if lemma not in lemma_count[form]:
-            lemma_count[form][lemma] = 0
-
-        lemma_count[form][lemma] = lemma_count[form][lemma] + 1
-
-
-for form in lemma_count.keys():
-    create_lookup_table(form, lemma_count)
-
-    wordform_types += 1
-
-    lemma_count_dict = lemma_count[form]
-
-    ambiguous_types_incremented = False
-    for lemma in lemma_count_dict:
-        wordform_tokens += lemma_count_dict[lemma]
-        if lemma == form:
-            identity_tokens += lemma_count_dict[lemma]
-        if len(lemma_count_dict) > 1:
-            if not ambiguous_types_incremented:
-                ambiguous_types += 1
-                ambiguous_types_incremented = True
-            ambiguous_tokens += lemma_count_dict[lemma]
-            if lemma == lemma_max[form]:
-                ambiguous_most_common_tokens += lemma_count_dict[lemma]
-        else:
-            unambiguous_types += 1
-            unambiguous_tokens += lemma_count_dict[lemma]
+train_lookup()
 
 set_training_results()
-
-test_data = open(test_file, 'r')
 
 for line in test_data:
     if re.search('\t', line):
         field = line.strip().split('\t')
         form = field[1]
         lemma = field[2]
-
-        if form in lemma_max:
-            found_in_lookup_table += 1
-            if lemma == lemma_max[form]:
-                lookup_match += 1
-            else:
-                lookup_mismatch += 1
-        else:
-            not_found_in_lookup_table += 1
-            if lemma == form:
-                identity_match += 1
-            else:
-                identity_mismatch += 1
-        total_test_items += 1
+        test_lookup(form, lemma)
 
 set_test_results()
 
