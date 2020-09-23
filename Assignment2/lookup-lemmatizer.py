@@ -2,18 +2,14 @@ import sys
 import re
 
 
-def get_lemma_with_maximum_count(lemma_count_dict):
+def create_lookup_table(form, lemma_count_dict):
     max_count = -1
     max_lemma = ""
     for lemma in lemma_count_dict.keys():
         if lemma_count_dict[lemma] > max_count:
             max_count = lemma_count_dict[lemma]
             max_lemma = lemma
-    return max_lemma
-
-
-def create_lookup_table(form, lemma_count):
-    lemma_max[form] = get_lemma_with_maximum_count(lemma_count[form])
+    lemma_max[form] = max_lemma
 
 
 def train_lemma_count(form, lemma):
@@ -31,11 +27,10 @@ def train_lookup():
         ambiguous_most_common_tokens, unambiguous_types, unambiguous_tokens
 
     for form in lemma_count.keys():
-
-        create_lookup_table(form, lemma_count)
-
+        create_lookup_table(form, lemma_count[form])
         form_lemma_count = lemma_count[form]
         ambiguous_types_incremented = False
+
         for lemma in form_lemma_count:
             wordform_tokens += form_lemma_count[lemma]
             if lemma == form:
