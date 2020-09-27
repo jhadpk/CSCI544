@@ -15,11 +15,13 @@ def remove_stop_words(words):
 
 
 def get_score(review, dictionary, class_wordcount, class_filecount):
+    #score = P(Class)*P(Class|word1)*P(Class|word2).....*P(Class|wordn)
     # prior probability
     score_class = math.log(class_filecount) - math.log(total_file_count)
     denominator = math.log(class_wordcount + total_word_count)
     for word in review:
         numerator = math.log(dictionary.get(word, 0) + 1)
+        #posterior probability of the word (P(Class|word) = #count of word in class (P(AintersectionB)) / #total words P(B)
         score_class += (numerator - denominator)
     return score_class
 
