@@ -1,4 +1,5 @@
 import glob
+import math
 import os
 import re
 import sys
@@ -33,6 +34,18 @@ def get_count_dictionary(files):
     return count_dict
 
 
+# condprob <- Tct+1 / ∑t′(Tct′+1) https://nlp.stanford.edu/IR-book/pdf/13bayes.pdf Pg. 260
+def get_conditional_prob(class_dict, class_wordcount, total_word_count):
+    denominator = math.log(class_wordcount + total_word_count)
+    conditional_prob_dict = {}
+    for key, value in class_dict.items():
+        # conditional probability of the word (P(Class|word) = #count of word in class (P(AintersectionB)) / #total words P(B)
+        conditional_prob_dict[key] = math.log(value + 1) - denominator
+    # will be used for unknown words for the class
+    conditional_prob_dict['$UNKNOWN_WORD_DEFAULT'] = math.log(1) - denominator
+    return conditional_prob_dict
+
+
 folder = sys.argv[1]
 # folder = 'op_spam_training_data'
 
@@ -62,17 +75,29 @@ negative_deceptive_count = sum(negative_deceptive_dict.values())
 # unique total count
 total_word_count = len(positive_truthful_dict + positive_deceptive_dict + negative_truthful_dict + negative_deceptive_dict)
 
+# total file count
+total_file_count = len(positive_truthful_files) + len(positive_deceptive_files) + len(negative_truthful_files) + len(negative_deceptive_files)
+
+# all prob are in log
+positive_truthful_conditional_prob_dict = get_conditional_prob(positive_truthful_dict, positive_truthful_count, total_word_count)
+positive_deceptive_conditional_prob_dict = get_conditional_prob(positive_deceptive_dict, positive_deceptive_count, total_word_count)
+negative_truthful_conditional_prob_dict = get_conditional_prob(negative_truthful_dict, negative_truthful_count, total_word_count)
+negative_deceptive_conditional_prob_dict = get_conditional_prob(negative_deceptive_dict, negative_deceptive_count, total_word_count)
+
+positive_truthful_prior_prob = math.log(len(positive_truthful_files)) - math.log(total_file_count)
+positive_deceptive_prior_prob = math.log(len(positive_deceptive_files)) - math.log(total_file_count)
+negative_truthful_prior_prob = math.log(len(negative_truthful_files)) - math.log(total_file_count)
+negative_deceptive_prior_prob = math.log(len(negative_deceptive_files)) - math.log(total_file_count)
+
 with open("nbmodel.txt", 'w') as f:
-    f.write("positive_truthful_dict="+str(dict(positive_truthful_dict))+"\n")
-    f.write("positive_deceptive_dict="+str(dict(positive_deceptive_dict))+"\n")
-    f.write("negative_truthful_dict="+str(dict(negative_truthful_dict))+"\n")
-    f.write("negative_deceptive_dict="+str(dict(negative_deceptive_dict))+"\n")
-    f.write("positive_truthful_count=" + str(positive_truthful_count) + "\n")
-    f.write("positive_deceptive_count=" + str(positive_deceptive_count) + "\n")
-    f.write("negative_truthful_count=" + str(negative_truthful_count) + "\n")
-    f.write("negative_deceptive_count=" + str(negative_deceptive_count) + "\n")
-    f.write("positive_truthful_filecount="+str(len(positive_truthful_files))+"\n")
-    f.write("positive_deceptive_filecount="+str(len(positive_deceptive_files))+"\n")
-    f.write("negative_truthful_filecount="+str(len(negative_truthful_files))+"\n")
-    f.write("negative_deceptive_filecount="+str(len(negative_deceptive_files))+"\n")
-    f.write("total_word_count=" + str(total_word_count) + "\n")
+    # class wise posterior probability
+    f.write("positive_truthful_conditional_prob_dict=" + str(dict(positive_truthful_conditional_prob_dict)) + "\n")
+    f.write("positive_deceptive_conditional_prob_dict="+str(dict(positive_deceptive_conditional_prob_dict))+"\n")
+    f.write("negative_truthful_conditional_prob_dict="+str(dict(negative_truthful_conditional_prob_dict))+"\n")
+    f.write("negative_deceptive_conditional_prob_dict="+str(dict(negative_deceptive_conditional_prob_dict))+"\n")
+
+    # class wise prior probability
+    f.write("positive_truthful_prior_prob=" + str(positive_truthful_prior_prob) + "\n")
+    f.write("positive_deceptive_prior_prob=" + str(positive_deceptive_prior_prob) + "\n")
+    f.write("negative_truthful_prior_prob=" + str(negative_truthful_prior_prob) + "\n")
+    f.write("negative_deceptive_prior_prob=" + str(negative_deceptive_prior_prob) + "\n")
