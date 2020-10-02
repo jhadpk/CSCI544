@@ -5,14 +5,12 @@ import glob
 from collections import Counter
 import random
 
-
 def remove_stop_words(words):
     valid_words = []
     for word in words:
         if word not in stop_words:
             valid_words.append(word)
     return valid_words
-
 
 def get_word_count(file):
     review = open(file, 'r').read().lower()
@@ -22,13 +20,11 @@ def get_word_count(file):
     word_count_dict = Counter(words)
     return word_count_dict
 
-
 def get_count_dictionary(files):
     count_dict = Counter()
     for file in files:
         count_dict += get_word_count(file)
     return dict(count_dict)
-
 
 def initialize():
     for word in features:
@@ -37,37 +33,31 @@ def initialize():
         weights_cached_polarity[word] = 0
         weights_cached_origin[word] = 0
 
-
 def update_activation(a, b):
     return a + b
-
 
 def update_weight(w, y, x):
     return w + y * x
 
-
 def update_cache_weight(u, y, c, x):
     return u + y * c * x
-
 
 def update_bias(b, y):
     return b + y
 
-
 def update_cache_bias(b, y, c):
     return b + y * c
-
 
 def get_averaged_value(w, u, c):
     return w - (u/c)
 
-
-def create_model(file_name, w1, b1, w2, b2):
+def create_model(file_name, w1, b1, w2, b2, features):
     with open(file_name, 'w') as f:
         f.write("weights_polarity=" + str(w1) + "\n")
         f.write("bias_polarity=" + str(b1) + "\n")
         f.write("weights_origin=" + str(w2) + "\n")
         f.write("bias_origin=" + str(b2) + "\n")
+        f.write("features=" + str(features) + "\n")
 
 
 # folder = 'op_spam_training_data'
@@ -91,7 +81,6 @@ weights_cached_polarity = {}
 bias_cached_polarity = 0
 weights_cached_origin = {}
 bias_cached_origin = 0
-
 c = 1
 
 initialize()
@@ -126,7 +115,7 @@ for k in range(0, 10):
             bias_cached_origin = update_cache_bias(bias_cached_origin, y_origin, c)
         c += 1
 
-create_model("vanillamodel.txt", weights_polarity, bias_polarity, weights_origin, bias_origin)
+create_model("vanillamodel.txt", weights_polarity, bias_polarity, weights_origin, bias_origin, features)
 
 for i in weights_polarity:
     weights_polarity[i] = get_averaged_value(weights_polarity[i], weights_cached_polarity[i], c)
@@ -134,4 +123,4 @@ for i in weights_polarity:
 bias_polarity = get_averaged_value(bias_polarity, bias_cached_polarity, c)
 bias_origin = get_averaged_value(bias_origin, bias_cached_origin, c)
 
-create_model("averagedmodel.txt", weights_polarity, bias_polarity, weights_origin, bias_origin)
+create_model("averagedmodel.txt", weights_polarity, bias_polarity, weights_origin, bias_origin, features)
