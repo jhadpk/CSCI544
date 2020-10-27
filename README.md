@@ -6,7 +6,7 @@ Introduction to components of human language interaction with machine. Captures 
 #### Homworks
 
 |No.| Assignment |Description|Runtime|Accuracy|Score|
-|---|------------------|---------|-------|
+|---|------------------|---------|-------|-------|-------|
 |1|[Full Name Prediction](https://github.com/jhadpk/CSCI544/blob/master/Assignment1/)|[HW1](https://github.com/jhadpk/CSCI544/blob/master/Assignment1/HW1.pdf) |<1s|0.985|10 / 10|
 |2|[Lookup Lemmatizer](https://github.com/jhadpk/CSCI544/blob/master/Assignment2/)|[HW2](https://github.com/jhadpk/CSCI544/blob/master/Assignment2/HW2.pdf) |1.7s|1|20 / 20|
 |3|[Navie Bayes](https://github.com/jhadpk/CSCI544/blob/master/Assignment3/)|[HW3](https://github.com/jhadpk/CSCI544/blob/master/Assignment3/HW3.pdf) |3.9s|Mean F1: 0.8825|9.99 / 10|
