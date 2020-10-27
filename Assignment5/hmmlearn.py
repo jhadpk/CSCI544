@@ -28,15 +28,14 @@ def get_first_word_state_probabilities():
     return first_word_states_probabilities
 
 
-def create_model(file_name, transition_probability, emission_probability, first_word_states_probabilities, unique_words_per_state, unique_words, unique_states, total_lines):
+def create_model(file_name, transition_probability, emission_probability, first_word_states_probabilities, unique_words_per_state, unique_words, unique_states):
     with open(file_name, 'w') as f:
-        f.write("transition_probability_dict=" + str(dict(transition_probability)) + "\n")
-        f.write("emission_probability_dict=" + str(dict(emission_probability)) + "\n")
+        f.write("trained_transition_probabilities=" + str(dict(transition_probability)) + "\n")
+        f.write("trained_emission_probabilities=" + str(dict(emission_probability)) + "\n")
         f.write("first_word_states_probabilities=" + str(dict(first_word_states_probabilities)) + "\n")
         f.write("unique_words_per_state=" + str(dict(unique_words_per_state)) + "\n")
         f.write("unique_words=" + str(unique_words) + "\n")
         f.write("unique_states=" + str(unique_states) + "\n")
-        f.write("total_lines=" + str(total_lines) + "\n")
 
 
 # training_file = sys.argv[1]
@@ -89,4 +88,4 @@ emission_probability = get_emission_probabilities(emissions, emission_states)
 first_word_states = Counter(first_word_states)
 first_word_states_probabilities = get_first_word_state_probabilities()
 
-create_model("hmmmodel.txt", transition_probability, emission_probability, first_word_states_probabilities, unique_words_per_state, unique_words, unique_states, total_lines)
+create_model("hmmmodel.txt", transition_probability, emission_probability, first_word_states_probabilities, unique_words_per_state, unique_words, unique_states)

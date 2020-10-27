@@ -16,7 +16,7 @@ def get_emission_probability(observation):
         #if word is not seen, let transition prob decide of the top N tags
         return 1
     else:
-        return 0 if observation not in emission_probability_dict else emission_probability_dict[observation]
+        return 0 if observation not in trained_emission_probabilities else trained_emission_probabilities[observation]
 
 
 def get_zero_matrix(rows, cols):
@@ -60,13 +60,12 @@ model_file = "hmmmodel.txt"
 output_file = "hmmoutput.txt"
 
 model = learn_model(model_file)
-transition_probability_dict = ast.literal_eval(model.get("transition_probability_dict"))
-emission_probability_dict = ast.literal_eval(model.get("emission_probability_dict"))
+trained_transition_probabilities = ast.literal_eval(model.get("trained_transition_probabilities"))
+trained_emission_probabilities = ast.literal_eval(model.get("trained_emission_probabilities"))
 first_word_states_probabilities = ast.literal_eval(model.get("first_word_states_probabilities"))
 unique_words_per_state = ast.literal_eval(model.get("unique_words_per_state"))
 unique_words = ast.literal_eval(model.get("unique_words"))
 unique_states = ast.literal_eval(model.get("unique_states"))
-total_lines = int(model.get("total_lines"))
 
 trained_words = set()
 for word in unique_words:
@@ -111,9 +110,9 @@ for line in test_lines:
                     if viterbi_prob_matrix[previous_state_index][word_index - 1] == 0:
                         current_prob = 0
                     else:
-                        if transition not in transition_probability_dict:
+                        if transition not in trained_transition_probabilities:
                             transition = previous_state + "->UNKNOWN"
-                        transition_probability = transition_probability_dict[transition]
+                        transition_probability = trained_transition_probabilities[transition]
                         current_prob = viterbi_prob_matrix[previous_state_index][word_index - 1] * transition_probability
                     if current_prob > max_transition_prob:
                         max_transition_prob = current_prob
